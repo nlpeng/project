@@ -1,5 +1,6 @@
 package com.hellobdr.demo;
 
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.get.MultiGetItemResponse;
@@ -10,6 +11,7 @@ import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
+import org.elasticsearch.client.Requests;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -273,6 +275,88 @@ public class App {
 
     }
 
+
+    @Test
+    public void termQuery() {
+
+        // 1 第一field查询
+        SearchResponse searchResponse = client.prepareSearch("blog").setTypes("article")
+                .setQuery(QueryBuilders.termQuery("content", "全")).get();// 一个文字
+
+        // 2 打印查询结果
+        SearchHits hits = searchResponse.getHits(); // 获取命中次数，查询结果有多少对象
+        System.out.println("查询结果有：" + hits.getTotalHits() + "条");
+
+        Iterator<SearchHit> iterator = hits.iterator();
+
+        while (iterator.hasNext()) {
+            SearchHit searchHit = iterator.next(); // 每个查询对象
+
+            System.out.println(searchHit.getSourceAsString()); // 获取字符串格式打印
+        }
+
+        // 3 关闭连接
+        client.close();
+    }
+
+
+    @Test
+    public void fuzzy() {
+
+        // 1 模糊查询
+        SearchResponse searchResponse = client.prepareSearch("blog").setTypes("article")
+                .setQuery(QueryBuilders.fuzzyQuery("title", "lucene")).get();
+
+        // 2 打印查询结果
+        SearchHits hits = searchResponse.getHits(); // 获取命中次数，查询结果有多少对象
+        System.out.println("查询结果有：" + hits.getTotalHits() + "条");
+
+        Iterator<SearchHit> iterator = hits.iterator();
+
+        while (iterator.hasNext()) {
+            SearchHit searchHit = iterator.next(); // 每个查询对象
+
+            System.out.println(searchHit.getSourceAsString()); // 获取字符串格式打印
+        }
+
+        // 3 关闭连接
+        client.close();
+    }
+
+
+
+    @Test
+    public void createMapping() throws Exception {
+
+        // 1设置mapping
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject("article")
+                .startObject("properties")
+                .startObject("id1")
+                .field("type", "string")
+                .field("store", "yes")
+                .endObject()
+                .startObject("title2")
+                .field("type", "string")
+                .field("store", "no")
+                .endObject()
+                .startObject("content")
+                .field("type", "string")
+                .field("store", "yes")
+                .endObject()
+                .endObject()
+                .endObject()
+                .endObject();
+
+        // 2 添加mapping
+        PutMappingRequest mapping = Requests.putMappingRequest("blog4").type("article").source(builder);
+
+        client.admin().indices().putMapping(mapping).get();
+
+        // 3 关闭资源
+        client.close();
+    }
 
 
 }
